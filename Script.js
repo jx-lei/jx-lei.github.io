@@ -1,15 +1,40 @@
 document.addEventListener('DOMContentLoaded', function() {
-    const taskGroups = {
-        A: ["Vacuuming", "Washing the Floors"],
-        B: ["Washing Bathroom", "Wash Kitchen"]
-    };
-
-    const taskContainer = document.getElementById('taskContainer');
     const currentWeekElement = document.getElementById('currentWeek');
     const currentWeekNumber = new Date().getWeek();
     currentWeekElement.textContent = currentWeekNumber;
 
+    // Initialize task and battle elements
+    const taskContainer = document.getElementById('taskContainer');
     let tasksState = JSON.parse(localStorage.getItem('tasksState')) || {};
+
+    // Score elements and event listeners for the battle
+    const jialiScoreElement = document.getElementById('jialiScore');
+    const andreasScoreElement = document.getElementById('andreasScore');
+    jialiScoreElement.textContent = localStorage.getItem('jialiScore') || '0';
+    andreasScoreElement.textContent = localStorage.getItem('andreasScore') || '0';
+
+    document.getElementById('incrementJiali').addEventListener('click', function() {
+        incrementScore('jialiScore');
+    });
+
+    document.getElementById('incrementAndreas').addEventListener('click', function() {
+        incrementScore('andreasScore');
+    });
+
+    function incrementScore(player) {
+        let score = parseInt(localStorage.getItem(player)) || 0;
+        score++;
+        localStorage.setItem(player, score.toString());
+        document.getElementById(player).textContent = score;
+    }
+
+    // Task management logic
+    const tasks = [
+        { task: "Vacuuming", type: "A" },
+        { task: "Washing the Floors", type: "A" },
+        { task: "Washing Bathroom", type: "B" },
+        { task: "Wash Kitchen", type: "B" }
+    ];
 
     function createTaskElement(week, task, index, owner) {
         const li = document.createElement('li');
@@ -26,7 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const label = document.createElement('label');
         label.htmlFor = checkbox.id;
-        label.textContent = task;
+        label.textContent = task.task;
 
         const taskOwner = document.createElement('span');
         taskOwner.className = 'task-owner';
@@ -40,69 +65,31 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function renderTasks() {
         taskContainer.innerHTML = '';
-        let groupToggle = currentWeekNumber % 2 === 0;
+        let groupToggle = currentWeekNumber % 2 === 0; // Toggle roles every week
 
         const weekDiv = document.createElement('div');
         weekDiv.className = 'week';
-
         const weekTitle = document.createElement('h2');
         weekTitle.textContent = `Week ${currentWeekNumber}`;
         weekDiv.appendChild(weekTitle);
-
         const ul = document.createElement('ul');
-        Object.keys(taskGroups).forEach(group => {
-            taskGroups[group].forEach((task, index) => {
-                const owner = groupToggle ? (group === 'A' ? "Jiali" : "Andreas") : (group === 'A' ? "Andreas" : "Jiali");
-                ul.appendChild(createTaskElement(currentWeekNumber, task, index, owner));
-            });
-            groupToggle = !groupToggle;
+
+        // Assign tasks by group and toggle weekly
+        tasks.forEach((task, index) => {
+            const owner = groupToggle ? (task.type === 'A' ? "Jiali" : "Andreas") : (task.type === 'A' ? "Andreas" : "Jiali");
+            ul.appendChild(createTaskElement(currentWeekNumber, task, index, owner));
         });
         weekDiv.appendChild(ul);
         taskContainer.appendChild(weekDiv);
     }
 
     renderTasks();
-
-    const shoppingListState = JSON.parse(localStorage.getItem('shoppingListState')) || [];
-    const shoppingListElement = document.getElementById('shoppingList');
-
-    function renderShoppingList() {
-        shoppingListElement.innerHTML = '';
-        shoppingListState.forEach((item, index) => {
-            const li = document.createElement('li');
-            li.className = item.bought ? 'done' : '';
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.checked = item.bought;
-            checkbox.addEventListener('change', function() {
-                item.bought = this.checked;
-                localStorage.setItem('shoppingListState', JSON.stringify(shoppingListState));
-                renderShoppingList();
-            });
-            const label = document.createElement('label');
-            label.textContent = item.name;
-
-            li.appendChild(checkbox);
-            li.appendChild(label);
-            shoppingListElement.appendChild(li);
-        });
-    }
-
-    function addItem() {
-        const newItemInput = document.getElementById('newItem');
-        const newItem = newItemInput.value.trim();
-        if (newItem !== '') {
-            shoppingListState.push({ name: newItem, bought: false });
-            localStorage.setItem('shoppingListState', JSON.stringify(shoppingListState));
-            newItemInput.value = '';
-            renderShoppingList();
-        }
-    }
-
-    renderShoppingList();
 });
 
+// Helper function to calculate the current week number of the year
 Date.prototype.getWeek = function() {
     const firstJan = new Date(this.getFullYear(), 0, 1);
-    return Math.ceil((((this - firstJan) / 86400000) + firstJan.getDay() + 1) / 7);
+    const today = new Date(this.getFullYear(), this.getMonth(), this.getDate());
+    const dayOfYear = ((today - firstJan + 86400000) / 86400000);
+    return Math.ceil(dayOfYear / 7);
 };
